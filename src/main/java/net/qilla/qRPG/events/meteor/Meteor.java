@@ -80,8 +80,10 @@ public class Meteor {
         this.crashPos = MeteorPathUtil.getCrashPos(loc);
         this.meteorMount = new MountEntity(craftServer, level, originPos);
         level.addFreshEntity(meteorMount);
+        meteorMount.setLifespan(LIFESPAN);
         this.meteorDisplay = new MeteorEntity(craftServer, level, originPos, calcMeteorBlock().getHandle());
         level.addFreshEntity(meteorDisplay);
+        meteorDisplay.setLifespan(LIFESPAN + 10);
         this.curPosition = originPos;
     }
 
@@ -95,7 +97,7 @@ public class Meteor {
     private void fallLoop(@NotNull CompletableFuture<Boolean> onCrash) {
         if(crashPos == null) {
             onCrash.complete(false);
-            this.cleanup();
+            trail.endCleanup();
             return;
         }
 
@@ -146,11 +148,11 @@ public class Meteor {
                     trail.trailCleanup(playersInvolved, world);
                 }
 
-                if(movementTick >= LIFESPAN + 5) {
+                if(movementTick >= LIFESPAN) {
                     Collection<Player> playersInvolved = meteorDisplay.getCraft().getChunk().getPlayersSeeingChunk();
 
                     crash(playersInvolved, crashPos);
-                    cleanup();
+                    trail.endCleanup();
                     this.cancel();
                     onCrash.complete(true);
                     return;
@@ -190,12 +192,6 @@ public class Meteor {
                 player.playSound(new Location(world, position.x(), position.y(), position.z()), Sound.ITEM_MACE_SMASH_GROUND_HEAVY, 100, RandomUtil.between(0f, 0.5f));
             });
         });
-    }
-
-    private void cleanup() {
-        meteorMount.remove(Entity.RemovalReason.DISCARDED);
-        meteorDisplay.remove(Entity.RemovalReason.DISCARDED);
-        trail.endCleanup();
     }
 
     public @NotNull Plugin getPlugin() {

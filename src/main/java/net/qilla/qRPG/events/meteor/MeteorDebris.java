@@ -3,7 +3,6 @@ package net.qilla.qRPG.events.meteor;
 import com.google.common.base.Preconditions;
 import io.papermc.paper.math.Position;
 import it.unimi.dsi.fastutil.Pair;
-import net.minecraft.world.entity.Entity;
 import net.minecraft.world.phys.Vec3;
 import net.qilla.qlibrary.util.tools.CurveUtil;
 import net.qilla.qlibrary.util.tools.RandomUtil;

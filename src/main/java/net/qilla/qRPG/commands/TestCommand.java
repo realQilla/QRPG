@@ -1,7 +1,6 @@
 package net.qilla.qRPG.commands;
 
 import com.mojang.brigadier.Command;
-import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import io.papermc.paper.command.brigadier.CommandSourceStack;
 import io.papermc.paper.command.brigadier.Commands;
@@ -10,20 +9,15 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.network.protocol.game.ClientboundBlockUpdatePacket;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.phys.Vec3;
-import net.qilla.qRPG.events.MeteorEvent;
 import net.qilla.qlibrary.util.tools.CurveUtil;
 import net.qilla.qlibrary.util.tools.RandomUtil;
 import org.bukkit.Location;
-import org.bukkit.World;
 import org.bukkit.craftbukkit.entity.CraftPlayer;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitRunnable;
-import org.bukkit.util.Vector;
-
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Random;
 
 public class TestCommand {
 

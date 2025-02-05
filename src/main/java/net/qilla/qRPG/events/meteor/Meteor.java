@@ -6,7 +6,6 @@ import io.papermc.paper.math.Position;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.protocol.game.ClientboundBlockUpdatePacket;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.world.entity.Entity;
 import net.minecraft.world.phys.Vec3;
 import net.qilla.qlibrary.util.tools.BlockUtil;
 import net.qilla.qlibrary.util.tools.PlayerUtil;
@@ -16,6 +15,7 @@ import org.bukkit.block.Block;
 import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.craftbukkit.CraftWorld;
 import org.bukkit.craftbukkit.block.CraftBlockState;
+import org.bukkit.craftbukkit.block.data.CraftBlockData;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitRunnable;
@@ -43,6 +43,7 @@ public class Meteor {
             Material.RAW_GOLD_BLOCK,
             Material.GLOWSTONE,
             Material.CRYING_OBSIDIAN,
+            Material.AMETHYST_BLOCK,
             Material.DRAGON_EGG
     ));
 
@@ -62,9 +63,9 @@ public class Meteor {
     private final MeteorEntity meteorDisplay;
     private final MeteorTrail trail;
 
-    private int movementTick = 0;
+    private int tickCount = 0;
     private float meteorScale = 0.5f;
-    private final List<CraftBlockState> blownBlocks = new ArrayList<>();
+    private final List<CraftBlockData> blownBlocks = new ArrayList<>();
     private Position curPosition;
 
     public Meteor(@NotNull Plugin plugin, @NotNull MeteorTrail trail, @NotNull Location loc) {
@@ -80,10 +81,10 @@ public class Meteor {
         this.crashPos = MeteorPathUtil.getCrashPos(loc);
         this.meteorMount = new MountEntity(craftServer, level, originPos);
         level.addFreshEntity(meteorMount);
-        meteorMount.setLifespan(LIFESPAN);
+        meteorMount.setLifespan(LIFESPAN + 5);
         this.meteorDisplay = new MeteorEntity(craftServer, level, originPos, calcMeteorBlock().getHandle());
         level.addFreshEntity(meteorDisplay);
-        meteorDisplay.setLifespan(LIFESPAN + 10);
+        meteorDisplay.setLifespan(LIFESPAN + 5);
         this.curPosition = originPos;
     }
 
@@ -129,26 +130,26 @@ public class Meteor {
                     ));
                 }
 
-                if(Math.random() < TRAIL_PUFF_CHANCE && movementTick < (LIFESPAN - 5)) {
+                if(Math.random() < TRAIL_PUFF_CHANCE && tickCount < (LIFESPAN - 5)) {
                     Position smokeOffset = curPosition.offset(delta.x() * -4, delta.y() * -4, delta.z() * -4);
                     Collection<Player> playersInvolved = meteorDisplay.getCraft().getChunk().getPlayersSeeingChunk();
 
                     trail.tickSmoke(playersInvolved, smokeOffset, 0.25f);
                 }
 
-                if((movementTick % 5) == 0) {
+                if((tickCount % 5) == 0) {
                     Bukkit.getOnlinePlayers().forEach(player -> {
                         player.playSound(new Location(world, curPosition.x(), curPosition.y(), curPosition.z()), Sound.ENTITY_PARROT_IMITATE_BREEZE, 25f, RandomUtil.between(0f, 0.5f));
                     });
                 }
 
-                if(movementTick >= LIFESPAN / 2) {
+                if(tickCount >= (LIFESPAN / 2)) {
                     Collection<Player> playersInvolved = meteorDisplay.getCraft().getChunk().getPlayersSeeingChunk();
 
                     trail.trailCleanup(playersInvolved, world);
                 }
 
-                if(movementTick >= LIFESPAN) {
+                if(tickCount >= (LIFESPAN + 5)) {
                     Collection<Player> playersInvolved = meteorDisplay.getCraft().getChunk().getPlayersSeeingChunk();
 
                     crash(playersInvolved, crashPos);
@@ -158,7 +159,7 @@ public class Meteor {
                     return;
                 }
 
-                movementTick++;
+                tickCount++;
             }
         }.runTaskTimer(plugin, 0, 1);
     }
@@ -182,12 +183,12 @@ public class Meteor {
                                         curPos.blockX(), curPos.blockY(), curPos.blockZ()),
                                         blockState.getHandle()));
                         if(block.getType().isSolid() && Math.random() < 0.075) {
-                            blownBlocks.add((CraftBlockState) block.getState());
+                            blownBlocks.add((CraftBlockData) block.getBlockData());
                         }
                     }
                 }
             }
-            new MeteorDebris(this).burst(blownBlocks);
+            new MeteorDebris(this).burst(blownBlocks, meteorDisplay.getCraft().getTrackedPlayers());
             Bukkit.getOnlinePlayers().forEach(player -> {
                 player.playSound(new Location(world, position.x(), position.y(), position.z()), Sound.ITEM_MACE_SMASH_GROUND_HEAVY, 100, RandomUtil.between(0f, 0.5f));
             });

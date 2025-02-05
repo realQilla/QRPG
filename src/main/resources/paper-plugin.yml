@@ -1,0 +1,5 @@
+name: QRPG
+version: '1.0.0'
+author: Qilla
+main: net.qilla.qRPG.QRPG
+api-version: '1.21'

@@ -49,7 +49,6 @@ public class Meteor {
 
     private static final int CRATER_SIZE = 15;
     private static final float TRAIL_PUFF_CHANCE = 0.33f;
-    private static final int LIFESPAN = 325;
     private static final float MIN_SCALE = 4;
     private static final float MAX_SCALE = 12;
 
@@ -63,6 +62,7 @@ public class Meteor {
     private final MeteorEntity meteorDisplay;
     private final MeteorTrail trail;
 
+    private final int lifespan = RandomUtil.between(225, 325);
     private int tickCount = 0;
     private float meteorScale = 0.5f;
     private final List<CraftBlockData> blownBlocks = new ArrayList<>();
@@ -81,10 +81,10 @@ public class Meteor {
         this.crashPos = MeteorPathUtil.getCrashPos(loc);
         this.meteorMount = new MountEntity(craftServer, level, originPos);
         level.addFreshEntity(meteorMount);
-        meteorMount.setLifespan(LIFESPAN + 5);
+        meteorMount.setLifespan(lifespan + 5);
         this.meteorDisplay = new MeteorEntity(craftServer, level, originPos, calcMeteorBlock().getHandle());
         level.addFreshEntity(meteorDisplay);
-        meteorDisplay.setLifespan(LIFESPAN + 5);
+        meteorDisplay.setLifespan(lifespan + 5);
         this.curPosition = originPos;
     }
 
@@ -111,7 +111,8 @@ public class Meteor {
 
             @Override
             public void run() {
-                Vec3 delta = new Vec3(xDif / LIFESPAN, yDif / LIFESPAN, zDif / LIFESPAN);
+                Collection<Player> playersInvolved = meteorDisplay.getCraft().getChunk().getPlayersSeeingChunk();
+                Vec3 delta = new Vec3(xDif / lifespan, yDif / lifespan, zDif / lifespan);
 
                 curPosition = curPosition.offset(delta.x(), delta.y(), delta.z());
 
@@ -121,7 +122,7 @@ public class Meteor {
                 meteorDisplay.setPos(curPosition.x(), curPosition.y(), curPosition.z());
 
                 if(meteorScale < maximumScale) {
-                    meteorScale += (maximumScale / (LIFESPAN - 75));
+                    meteorScale += (maximumScale / (lifespan - 75));
                     meteorDisplay.setTransformation(new Transformation(
                             new Vector3f(-(meteorScale / 2), -(meteorScale / 2), -(meteorScale / 2)),
                             new Quaternionf(),
@@ -130,9 +131,8 @@ public class Meteor {
                     ));
                 }
 
-                if(Math.random() < TRAIL_PUFF_CHANCE && tickCount < (LIFESPAN - 5)) {
+                if(Math.random() < TRAIL_PUFF_CHANCE && tickCount < (lifespan - 5)) {
                     Position smokeOffset = curPosition.offset(delta.x() * -4, delta.y() * -4, delta.z() * -4);
-                    Collection<Player> playersInvolved = meteorDisplay.getCraft().getChunk().getPlayersSeeingChunk();
 
                     trail.tickSmoke(playersInvolved, smokeOffset, 0.25f);
                 }
@@ -143,15 +143,11 @@ public class Meteor {
                     });
                 }
 
-                if(tickCount >= (LIFESPAN / 2)) {
-                    Collection<Player> playersInvolved = meteorDisplay.getCraft().getChunk().getPlayersSeeingChunk();
-
+                if(tickCount >= (lifespan / 2)) {
                     trail.trailCleanup(playersInvolved, world);
                 }
 
-                if(tickCount >= (LIFESPAN + 5)) {
-                    Collection<Player> playersInvolved = meteorDisplay.getCraft().getChunk().getPlayersSeeingChunk();
-
+                if(tickCount >= (lifespan + 5)) {
                     crash(playersInvolved, crashPos);
                     trail.endCleanup();
                     this.cancel();

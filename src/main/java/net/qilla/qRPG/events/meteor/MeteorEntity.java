@@ -1,6 +1,5 @@
 package net.qilla.qRPG.events.meteor;
 
-import com.mojang.math.Transformation;
 import io.papermc.paper.math.Position;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerLevel;
@@ -13,7 +12,9 @@ import net.qilla.qlibrary.util.tools.RandomUtil;
 import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.craftbukkit.entity.CraftBlockDisplay;
 import org.bukkit.event.entity.EntityRemoveEvent;
+import org.bukkit.util.Transformation;
 import org.jetbrains.annotations.NotNull;
+import org.joml.AxisAngle4f;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
 
@@ -28,19 +29,21 @@ public class MeteorEntity extends Display.BlockDisplay implements CustomEntity<C
 
     public MeteorEntity(@NotNull CraftServer craftServer, @NotNull ServerLevel level, @NotNull Position pos, @NotNull BlockState blockState, int lifespan) {
         super(EntityType.BLOCK_DISPLAY, level);
+
+        this.craft = new CraftBlockDisplay(craftServer, this);
+
         super.setShadowRadius(100);
         super.setBlockState(blockState);
         super.setBrightnessOverride(new Brightness(15, 15));
         super.setPos(pos.x(), pos.y(), pos.z());
-        super.setTransformation(new Transformation(
+        craft.setTransformation(new Transformation(
                 new Vector3f(-0.5f, -0.5f, -0.5f),
-                new Quaternionf(),
+                new AxisAngle4f(),
                 new Vector3f(1, 1, 1),
-                new Quaternionf()
+                new AxisAngle4f()
         ));
 
         this.lifespan = lifespan;
-        this.craft = new CraftBlockDisplay(craftServer, this);
     }
 
     @Override

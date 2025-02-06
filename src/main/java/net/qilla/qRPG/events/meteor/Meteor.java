@@ -83,8 +83,8 @@ public class Meteor {
         this.crashPos = MeteorPathUtil.getCrashPos(blockPos, world);
         this.meteorMount = new MountEntity(craftServer, level, originPos, lifespan + 5);
         this.meteorMount.create();
-        this.meteorDisplay = new MeteorEntity(craftServer, level, originPos, calcMeteorBlock().getHandle(), lifespan + 5);
-        level.addFreshEntity(meteorDisplay);
+        this.meteorDisplay = new MeteorEntity(craftServer, level, originPos, calcMeteorBlock().getHandle(), lifespan + 10);
+        meteorDisplay.create();
         this.curPosition = originPos;
     }
 
@@ -125,8 +125,6 @@ public class Meteor {
                 curPosition = curPosition.offset(delta.x(), delta.y(), delta.z());
 
                 meteorMount.setPos(curPosition.x(), curPosition.y(), curPosition.z());
-
-                meteorDisplay.setPos(curPosition.x(), curPosition.y(), curPosition.z());
 
                 if(meteorScale < maximumScale) {
                     meteorScale += (maximumScale / (lifespan - 75));

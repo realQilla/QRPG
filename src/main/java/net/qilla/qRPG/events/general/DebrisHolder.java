@@ -17,6 +17,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.util.Transformation;
 import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
+import org.joml.AxisAngle4f;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
 
@@ -34,7 +35,7 @@ public class DebrisHolder {
             RandomUtil.offsetFrom(0, 4), RandomUtil.between(0, 4), RandomUtil.offsetFrom(0, 4)
     );
     private int tickCount = 0;
-    private int lifespan = 80;
+    private final int lifespan;
     private final ServerLevel level;
     private final CraftServer craftServer;
     private final Collection<Player> playersInvolved;
@@ -46,18 +47,20 @@ public class DebrisHolder {
     private final int rotationRate = RandomUtil.between(1, 4);
     private boolean isValid;
 
-    public DebrisHolder(@NotNull Collection<Player> playersInvolved, @NotNull ServerLevel level, @NotNull CraftServer craftServer, @NotNull Position position, @NotNull CraftBlockData blockData) {
+    public DebrisHolder(@NotNull Collection<Player> playersInvolved, @NotNull ServerLevel level, @NotNull CraftServer craftServer, @NotNull Position position, @NotNull CraftBlockData blockData, int lifespan) {
         this.playersInvolved = playersInvolved;
         this.level = level;
         this.craftServer = craftServer;
         this.position = position;
         this.debrisMount = getDebrisMount();
         this.debrisDisplay = getDebrisDisplay(blockData);
-        createPacket();
+        this.lifespan = lifespan;
+        this.createPacket();
         isValid = true;
     }
 
     public void tick() {
+        if(!isValid) return;
         if(tickCount > lifespan) {
             this.remove();
             return;
@@ -73,10 +76,6 @@ public class DebrisHolder {
         this.tickScale();
 
         this.tickCount++;
-    }
-
-    public void setLifespan(int lifespan) {
-        this.lifespan = lifespan;
     }
 
     public boolean isValid() {
@@ -141,9 +140,9 @@ public class DebrisHolder {
         debris.setBlock(blockData);
         debris.setTransformation(new Transformation(
                 new Vector3f(-0.5f, -0.5f, -0.5f),
-                new Quaternionf(),
+                new AxisAngle4f(),
                 new Vector3f(1, 1, 1),
-                new Quaternionf()
+                new AxisAngle4f()
         ));
         debris.getHandle().setPos(position.x(), position.y(), position.z());
 

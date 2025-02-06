@@ -30,20 +30,18 @@ public class MeteorDebris {
         Preconditions.checkNotNull(playersInvolved, "Collection cannot be null");
 
         Collections.shuffle(blockDataList);
+        List<DebrisHolder> debrisList = new ArrayList<>();
 
         for(CraftBlockData blockData : blockDataList) {
-            List<DebrisHolder> debrisList = new ArrayList<>();
-
             Position curPosition = meteor.getCrashPos().offset(
                     RandomUtil.offsetFrom(0, 6),
                     RandomUtil.offsetFrom(-3, 3),
                     RandomUtil.offsetFrom(0, 6));
-            DebrisHolder debrisHolder = new DebrisHolder(playersInvolved, meteor.getLevel(), meteor.getCraftServer(), curPosition, blockData);
-            debrisHolder.setLifespan(RandomUtil.between((int) (LIFESPAN * 0.65f), (LIFESPAN)));
+            DebrisHolder debrisHolder = new DebrisHolder(playersInvolved, meteor.getLevel(), meteor.getCraftServer(), curPosition, blockData,
+                    RandomUtil.between((int) (LIFESPAN * 0.65f), LIFESPAN));
             debrisList.add(debrisHolder);
-
-            displaceDebris(debrisList);
         }
+        displaceDebris(debrisList);
     }
 
     private void displaceDebris(List<DebrisHolder> debrisList) {

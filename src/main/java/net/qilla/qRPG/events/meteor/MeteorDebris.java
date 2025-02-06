@@ -2,6 +2,7 @@ package net.qilla.qRPG.events.meteor;
 
 import com.google.common.base.Preconditions;
 import io.papermc.paper.math.Position;
+import net.qilla.qRPG.events.general.DebrisHolder;
 import net.qilla.qlibrary.util.tools.RandomUtil;
 import org.bukkit.craftbukkit.block.data.CraftBlockData;
 import org.bukkit.entity.Player;
@@ -9,6 +10,7 @@ import org.bukkit.scheduler.BukkitRunnable;
 import org.jetbrains.annotations.NotNull;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 
 public class MeteorDebris {
@@ -25,6 +27,9 @@ public class MeteorDebris {
 
     public void burst(@NotNull List<CraftBlockData> blockDataList, Collection<Player> playersInvolved) {
         Preconditions.checkNotNull(blockDataList, "Block states cannot be null");
+        Preconditions.checkNotNull(playersInvolved, "Collection cannot be null");
+
+        Collections.shuffle(blockDataList);
 
         for(CraftBlockData blockData : blockDataList) {
             List<DebrisHolder> debrisList = new ArrayList<>();

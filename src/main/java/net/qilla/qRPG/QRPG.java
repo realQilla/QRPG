@@ -2,6 +2,7 @@ package net.qilla.qRPG;
 
 import io.papermc.paper.plugin.lifecycle.event.LifecycleEventManager;
 import io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents;
+import net.qilla.qRPG.commands.AirdropCommand;
 import net.qilla.qRPG.commands.MeteorCommand;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.Plugin;
@@ -31,6 +32,7 @@ public final class QRPG extends JavaPlugin {
     private void registerCommands() {
         lifecycleEventManager.registerEventHandler(LifecycleEvents.COMMANDS, event -> {
             new MeteorCommand(this, event.registrar()).register();
+            new AirdropCommand(this, event.registrar()).register();
         });
     }
 }

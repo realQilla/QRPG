@@ -1,4 +1,4 @@
-package net.qilla.qRPG.events.meteor;
+package net.qilla.qRPG.events.general;
 
 import io.papermc.paper.math.Position;
 import net.minecraft.network.protocol.game.*;
@@ -64,7 +64,7 @@ public class DebrisHolder {
         }
         double normalizedTick = tickCount / (double) 3;
 
-        Vector delta = CurveUtil.calculateBezier(p0, p1, p2, normalizedTick);
+        Vector delta = CurveUtil.quadraticBezierVector(p0, p1, p2, normalizedTick);
         this.tickMovement(new Vector(delta.getX(), delta.getY(), delta.getZ()));
 
         if((yRotation += rotationRate) > 90) yRotation = -90;

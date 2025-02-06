@@ -2,11 +2,13 @@ package net.qilla.qRPG.events.meteor;
 
 import com.google.common.base.Preconditions;
 import com.mojang.math.Transformation;
+import io.papermc.paper.math.BlockPosition;
 import io.papermc.paper.math.Position;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.protocol.game.ClientboundBlockUpdatePacket;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.phys.Vec3;
+import net.qilla.qRPG.events.general.MountEntity;
 import net.qilla.qlibrary.util.tools.BlockUtil;
 import net.qilla.qlibrary.util.tools.PlayerUtil;
 import net.qilla.qlibrary.util.tools.RandomUtil;
@@ -51,13 +53,14 @@ public class Meteor {
     private static final float TRAIL_PUFF_CHANCE = 0.33f;
     private static final float MIN_SCALE = 4;
     private static final float MAX_SCALE = 12;
+    private static final int MAX_DEBRIS = 2500;
 
     private final Plugin plugin;
     private final CraftServer craftServer;
     private final ServerLevel level;
     private final World world;
-    private final Position originPos;
-    private final Position crashPos;
+    private final BlockPosition originPos;
+    private final BlockPosition crashPos;
     private final MountEntity meteorMount;
     private final MeteorEntity meteorDisplay;
     private final MeteorTrail trail;
@@ -65,26 +68,23 @@ public class Meteor {
     private final int lifespan = RandomUtil.between(225, 325);
     private int tickCount = 0;
     private float meteorScale = 0.5f;
-    private final List<CraftBlockData> blownBlocks = new ArrayList<>();
     private Position curPosition;
 
-    public Meteor(@NotNull Plugin plugin, @NotNull MeteorTrail trail, @NotNull Location loc) {
+    public Meteor(@NotNull Plugin plugin, @NotNull MeteorTrail trail, @NotNull BlockPosition blockPos, @NotNull World world) {
         Preconditions.checkNotNull(plugin, "Plugin cannot be null");
-        Preconditions.checkNotNull(loc, "Location cannot be null");
+        Preconditions.checkNotNull(blockPos, "Location cannot be null");
 
         this.plugin = plugin;
         this.trail = trail;
         this.craftServer = (CraftServer) plugin.getServer();
-        this.level = ((CraftWorld) loc.getWorld()).getHandle();
-        this.world = loc.getWorld();
-        this.originPos = MeteorPathUtil.getOriginPos(loc);
-        this.crashPos = MeteorPathUtil.getCrashPos(loc);
-        this.meteorMount = new MountEntity(craftServer, level, originPos);
-        level.addFreshEntity(meteorMount);
-        meteorMount.setLifespan(lifespan + 5);
-        this.meteorDisplay = new MeteorEntity(craftServer, level, originPos, calcMeteorBlock().getHandle());
+        this.level = ((CraftWorld) world).getHandle();
+        this.world = world;
+        this.originPos = MeteorPathUtil.getOriginPos(blockPos);
+        this.crashPos = MeteorPathUtil.getCrashPos(blockPos, world);
+        this.meteorMount = new MountEntity(craftServer, level, originPos, lifespan + 5);
+        this.meteorMount.create();
+        this.meteorDisplay = new MeteorEntity(craftServer, level, originPos, calcMeteorBlock().getHandle(), lifespan + 5);
         level.addFreshEntity(meteorDisplay);
-        meteorDisplay.setLifespan(lifespan + 5);
         this.curPosition = originPos;
     }
 
@@ -102,22 +102,29 @@ public class Meteor {
             return;
         }
 
+        final double xDif = crashPos.x() - originPos.x();
+        final double yDif = crashPos.y() - originPos.y();
+        final double zDif = crashPos.z() - originPos.z();
+
+        final float maximumScale = RandomUtil.between(MIN_SCALE, MAX_SCALE);
+
         new BukkitRunnable() {
-            final double xDif = crashPos.x() - originPos.x();
-            final double yDif = crashPos.y() - originPos.y();
-            final double zDif = crashPos.z() - originPos.z();
-
-            final float maximumScale = RandomUtil.between(MIN_SCALE, MAX_SCALE);
-
             @Override
             public void run() {
                 Collection<Player> playersInvolved = meteorDisplay.getCraft().getChunk().getPlayersSeeingChunk();
-                Vec3 delta = new Vec3(xDif / lifespan, yDif / lifespan, zDif / lifespan);
 
+                if(tickCount >= (lifespan + 10)) {
+                    crash(playersInvolved);
+                    trail.endCleanup();
+                    this.cancel();
+                    onCrash.complete(true);
+                    return;
+                }
+
+                Vec3 delta = new Vec3(xDif / lifespan, yDif / lifespan, zDif / lifespan);
                 curPosition = curPosition.offset(delta.x(), delta.y(), delta.z());
 
                 meteorMount.setPos(curPosition.x(), curPosition.y(), curPosition.z());
-                meteorMount.setDeltaMovement(delta);
 
                 meteorDisplay.setPos(curPosition.x(), curPosition.y(), curPosition.z());
 
@@ -143,16 +150,8 @@ public class Meteor {
                     });
                 }
 
-                if(tickCount >= (lifespan / 2)) {
+                if(tickCount >= (lifespan / 2) && !trail.isCleaning()) {
                     trail.trailCleanup(playersInvolved, world);
-                }
-
-                if(tickCount >= (lifespan + 5)) {
-                    crash(playersInvolved, crashPos);
-                    trail.endCleanup();
-                    this.cancel();
-                    onCrash.complete(true);
-                    return;
                 }
 
                 tickCount++;
@@ -160,35 +159,52 @@ public class Meteor {
         }.runTaskTimer(plugin, 0, 1);
     }
 
-    private void crash(@NotNull Collection<Player> playersInvolved, @NotNull Position position) {
-        Preconditions.checkNotNull(position, "Position cannot be null");
+    private void crash(@NotNull Collection<Player> playersInvolved) {
         Preconditions.checkNotNull(playersInvolved, "Collection cannot be null");
-        CraftBlockState blockState = BlockUtil.getCraftState(Material.BARRIER);
+        List<BlockPosition> craterList = getCrater(crashPos);
+        List<CraftBlockData> blownBlocks = new ArrayList<>();
 
-        Bukkit.getScheduler().runTask(plugin, () -> {
-            for(int x = -CRATER_SIZE; x < CRATER_SIZE; x++) {
-                for(int y = -CRATER_SIZE; y < CRATER_SIZE; y++) {
-                    for(int z = -CRATER_SIZE; z < CRATER_SIZE; z++) {
-                        if(x * x + y * y + z * z > CRATER_SIZE * CRATER_SIZE) continue;
-                        Position curPos = position.offset(x, y, z);
-                        Block block = world.getBlockAt(curPos.blockX(), curPos.blockY(), curPos.blockZ());
-                        if(block.getType().isAir()) continue;
+        this.carveCrater(playersInvolved, craterList);
+        for(BlockPosition curPos : craterList) {
+            if(blownBlocks.size() > MAX_DEBRIS) break;
 
-                        PlayerUtil.sendPacket(playersInvolved,
-                                new ClientboundBlockUpdatePacket(new BlockPos(
-                                        curPos.blockX(), curPos.blockY(), curPos.blockZ()),
-                                        blockState.getHandle()));
-                        if(block.getType().isSolid() && Math.random() < 0.075) {
-                            blownBlocks.add((CraftBlockData) block.getBlockData());
-                        }
-                    }
+            Block block = world.getBlockAt(curPos.blockX(), curPos.blockY(), curPos.blockZ());
+            if(block.getType().isSolid() && Math.random() < 0.05) {
+                blownBlocks.add((CraftBlockData) block.getBlockData());
+            }
+        }
+        new MeteorDebris(this).burst(blownBlocks, meteorDisplay.getCraft().getTrackedPlayers());
+
+        Bukkit.getOnlinePlayers().forEach(player -> {
+            player.playSound(new Location(world, crashPos.blockX(), crashPos.blockY(), crashPos.blockZ()),
+                    Sound.ITEM_MACE_SMASH_GROUND_HEAVY, 100, RandomUtil.between(0f, 0.5f));
+        });
+
+    }
+
+    private List<BlockPosition> getCrater(@NotNull BlockPosition center) {
+        List<BlockPosition> craterList = new ArrayList<>();
+
+        for(int x = -CRATER_SIZE; x < CRATER_SIZE; x++) {
+            for(int y = -CRATER_SIZE; y < CRATER_SIZE; y++) {
+                for(int z = -CRATER_SIZE; z < CRATER_SIZE; z++) {
+                    if(x * x + y * y + z * z > CRATER_SIZE * CRATER_SIZE) continue;
+                    craterList.add(center.offset(x, y, z));
                 }
             }
-            new MeteorDebris(this).burst(blownBlocks, meteorDisplay.getCraft().getTrackedPlayers());
-            Bukkit.getOnlinePlayers().forEach(player -> {
-                player.playSound(new Location(world, position.x(), position.y(), position.z()), Sound.ITEM_MACE_SMASH_GROUND_HEAVY, 100, RandomUtil.between(0f, 0.5f));
-            });
-        });
+        }
+        return craterList;
+    }
+
+    private void carveCrater(@NotNull Collection<Player> playersInvolved, @NotNull List<BlockPosition> craterList) {
+        CraftBlockState blockState = BlockUtil.getCraftState(Material.AIR);
+
+        for(BlockPosition blockPos : craterList) {
+            PlayerUtil.sendPacket(playersInvolved,
+                    new ClientboundBlockUpdatePacket(new BlockPos(
+                            blockPos.blockX(), blockPos.blockY(), blockPos.blockZ()),
+                            blockState.getHandle()));
+        }
     }
 
     public @NotNull Plugin getPlugin() {
@@ -203,11 +219,11 @@ public class Meteor {
         return this.level;
     }
 
-    public @NotNull Position getOriginPos() {
+    public @NotNull BlockPosition getOriginPos() {
         return this.originPos;
     }
 
-    public @NotNull Position getCrashPos() {
+    public @NotNull BlockPosition getCrashPos() {
         return this.crashPos;
     }
 

@@ -61,8 +61,6 @@ public class MeteorTrail {
     }
 
     public void trailCleanup(@NotNull Collection<Player> playersInvolved, @NotNull World world) {
-        if(isCleaning) return;
-
         isCleaning = true;
         Bukkit.getScheduler().runTaskTimer(plugin, task -> {
             if(!isCleaning && trailCollection.isEmpty()) {
@@ -85,5 +83,9 @@ public class MeteorTrail {
 
     public void endCleanup() {
         isCleaning = false;
+    }
+
+    public boolean isCleaning() {
+        return isCleaning;
     }
 }

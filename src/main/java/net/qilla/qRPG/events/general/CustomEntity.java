@@ -1,10 +1,11 @@
 package net.qilla.qRPG.events.general;
 
 import org.bukkit.craftbukkit.entity.CraftEntity;
+import org.jetbrains.annotations.NotNull;
 
 public interface CustomEntity<T extends CraftEntity> {
 
-    T getCraft();
+    @NotNull T getCraft();
 
     void create();
 }

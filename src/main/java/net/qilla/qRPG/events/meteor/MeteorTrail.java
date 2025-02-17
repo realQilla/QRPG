@@ -1,16 +1,14 @@
 package net.qilla.qRPG.events.meteor;
 
 import com.google.common.base.Preconditions;
+import io.papermc.paper.math.BlockPosition;
 import io.papermc.paper.math.Position;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.protocol.game.ClientboundBlockUpdatePacket;
 import net.qilla.qlibrary.util.tools.BlockUtil;
 import net.qilla.qlibrary.util.tools.PlayerUtil;
 import net.qilla.qlibrary.util.tools.RandomUtil;
-import org.bukkit.Bukkit;
-import org.bukkit.Location;
-import org.bukkit.Material;
-import org.bukkit.World;
+import org.bukkit.*;
 import org.bukkit.craftbukkit.block.CraftBlockState;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
@@ -40,7 +38,7 @@ public class MeteorTrail {
         this.plugin = plugin;
     }
 
-    public void tickSmoke(@NotNull Collection<Player> playersInvolved, @NotNull Position position, float gapChance) {
+    public void tickSmoke(@NotNull Collection<Player> playersInvolved, @NotNull BlockPosition position, float gapChance) {
         Preconditions.checkNotNull(position, "Location cannot be null");
         Preconditions.checkNotNull(playersInvolved, "Collection cannot be null");
 
@@ -71,12 +69,14 @@ public class MeteorTrail {
             for(int i = 0; i < 8; i++) {
                 if(trailCollection.isEmpty()) break;
                 Position pos = trailCollection.get(RandomUtil.random().nextInt(0, trailCollection.size()));
-
-                trailCollection.remove(pos);
+                Location loc = new Location(world, pos.x(), pos.y(), pos.z());
 
                 PlayerUtil.sendPacket(playersInvolved, new ClientboundBlockUpdatePacket(
                         new BlockPos(pos.blockX(), pos.blockY(), pos.blockZ()),
-                        ((CraftBlockState) world.getBlockAt(new Location(world, pos.blockX(), pos.blockY(), pos.blockZ())).getState()).getHandle()));
+                        ((CraftBlockState) world.getBlockAt(loc).getState()).getHandle()));
+                trailCollection.remove(pos);
+                world.playSound(loc, Sound.BLOCK_CANDLE_EXTINGUISH, 1, RandomUtil.between(0.5f, 1.5f));
+                world.spawnParticle(Particle.SMOKE, loc, 20, 0.25, 0.25, 0.25, 0);
             }
         }, 0, 1);
     }

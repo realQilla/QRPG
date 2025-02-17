@@ -2,11 +2,16 @@ package net.qilla.qRPG.events.meteor;
 
 import com.google.common.base.Preconditions;
 import io.papermc.paper.math.Position;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.level.Level;
 import net.qilla.qRPG.events.general.DebrisHolder;
 import net.qilla.qlibrary.util.tools.RandomUtil;
+import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.craftbukkit.block.data.CraftBlockData;
 import org.bukkit.entity.Player;
+import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitRunnable;
+import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -17,15 +22,18 @@ public class MeteorDebris {
 
     private static final int LIFESPAN = 80;
 
-    private final Meteor meteor;
+    private final Plugin plugin;
+    private final ServerLevel level;
+    private final CraftServer craftServer;
 
-    public MeteorDebris(@NotNull Meteor meteor) {
-        Preconditions.checkNotNull(meteor, "Meteor cannot be null");
+    public MeteorDebris(@NotNull Plugin plugin, @NotNull ServerLevel level, @NotNull CraftServer craftServer) {
 
-        this.meteor = meteor;
+        this.plugin = plugin;
+        this.level = level;
+        this.craftServer = craftServer;
     }
 
-    public void burst(@NotNull List<CraftBlockData> blockDataList, Collection<Player> playersInvolved) {
+    public void burst(@NotNull List<CraftBlockData> blockDataList, Collection<Player> playersInvolved, @NotNull Position endPos) {
         Preconditions.checkNotNull(blockDataList, "Block states cannot be null");
         Preconditions.checkNotNull(playersInvolved, "Collection cannot be null");
 
@@ -33,11 +41,7 @@ public class MeteorDebris {
         List<DebrisHolder> debrisList = new ArrayList<>();
 
         for(CraftBlockData blockData : blockDataList) {
-            Position curPosition = meteor.getCrashPos().offset(
-                    RandomUtil.offsetFrom(0, 6),
-                    RandomUtil.offsetFrom(-3, 3),
-                    RandomUtil.offsetFrom(0, 6));
-            DebrisHolder debrisHolder = new DebrisHolder(playersInvolved, meteor.getLevel(), meteor.getCraftServer(), curPosition, blockData,
+            DebrisHolder debrisHolder = new DebrisHolder(craftServer, level, playersInvolved, endPos, blockData,
                     RandomUtil.between((int) (LIFESPAN * 0.65f), LIFESPAN));
             debrisList.add(debrisHolder);
         }
@@ -50,10 +54,7 @@ public class MeteorDebris {
 
             @Override
             public void run() {
-                if(tickCount > LIFESPAN) {
-                    debrisList.forEach(debrisHolder -> {
-                        if(debrisHolder.isValid()) debrisHolder.remove();
-                    });
+                if(tickCount >= LIFESPAN) {
                     this.cancel();
                     return;
                 }
@@ -62,6 +63,6 @@ public class MeteorDebris {
                 tickCount++;
             }
 
-        }.runTaskTimerAsynchronously(meteor.getPlugin(), 0, 1);
+        }.runTaskTimerAsynchronously(plugin, 0, 1);
     }
 }

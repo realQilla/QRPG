@@ -1,11 +1,16 @@
 package net.qilla.qRPG.events.general;
 
 import io.papermc.paper.math.Position;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.decoration.ArmorStand;
+import net.minecraft.world.level.ChunkPos;
 import org.bukkit.craftbukkit.CraftServer;
+import org.bukkit.craftbukkit.CraftWorld;
 import org.bukkit.craftbukkit.entity.CraftArmorStand;
+import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.event.entity.EntityRemoveEvent;
 import org.jetbrains.annotations.NotNull;
 
@@ -30,17 +35,23 @@ public class MountEntity extends ArmorStand implements CustomEntity<CraftArmorSt
     }
 
     @Override
-    public CraftArmorStand getCraft() {
+    public @NotNull CraftArmorStand getCraft() {
         return craft;
     }
 
     @Override
     public void create() {
-        super.level().addFreshEntity(this);
+        CraftWorld craftWorld = level().getWorld();
+        craftWorld.addEntityToWorld(this, CreatureSpawnEvent.SpawnReason.COMMAND);
+        ChunkPos chunkPos = this.chunkPosition();
+
+        if(!craftWorld.isChunkLoaded(chunkPos.x, chunkPos.z)) {
+            craftWorld.getChunkAt(chunkPos.x, chunkPos.z);
+        }
     }
 
     @Override
-    public boolean save(@NotNull net.minecraft.nbt.CompoundTag tag) {
+    public boolean save(@NotNull CompoundTag tag) {
         return false;
     }
 
@@ -51,5 +62,18 @@ public class MountEntity extends ArmorStand implements CustomEntity<CraftArmorSt
                 super.discard(EntityRemoveEvent.Cause.DISCARD);
             }
         }
+    }
+
+    public static @NotNull CraftArmorStand getMount(@NotNull CraftServer craftServer, @NotNull ServerLevel level, @NotNull Position position) {
+        CraftArmorStand mount = new CraftArmorStand(craftServer, EntityType.ARMOR_STAND.create(level, EntitySpawnReason.COMMAND));
+
+        mount.setGravity(false);
+        mount.setMarker(true);
+        mount.setInvisible(true);
+        mount.setSmall(true);
+        mount.setBasePlate(false);
+        mount.getHandle().setPos(position.x(), position.y(), position.z());
+
+        return mount;
     }
 }

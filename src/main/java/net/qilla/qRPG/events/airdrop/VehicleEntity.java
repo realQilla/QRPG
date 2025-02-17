@@ -5,10 +5,12 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.boss.enderdragon.EnderDragon;
+import net.minecraft.world.level.ChunkPos;
 import net.qilla.qRPG.events.general.CustomEntity;
-import org.bukkit.attribute.Attribute;
 import org.bukkit.craftbukkit.CraftServer;
+import org.bukkit.craftbukkit.CraftWorld;
 import org.bukkit.craftbukkit.entity.CraftEnderDragon;
+import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.event.entity.EntityRemoveEvent;
 import org.jetbrains.annotations.NotNull;
 
@@ -28,28 +30,19 @@ public class VehicleEntity extends EnderDragon implements CustomEntity<CraftEnde
     }
 
     @Override
-    public CraftEnderDragon getCraft() {
+    public @NotNull CraftEnderDragon getCraft() {
         return craft;
     }
 
     @Override
     public void create() {
-        super.level().addFreshEntity(this);
-    }
+        CraftWorld craftWorld = level().getWorld();
+        craftWorld.addEntityToWorld(this, CreatureSpawnEvent.SpawnReason.COMMAND);
+        ChunkPos chunkPos = this.chunkPosition();
 
-    @Override
-    public void aiStep() {
-
-    }
-
-    @Override
-    public void processFlappingMovement() {
-
-    }
-
-    @Override
-    public void onFlap() {
-
+        if(!craftWorld.isChunkLoaded(chunkPos.x, chunkPos.z)) {
+            craftWorld.getChunkAt(chunkPos.x, chunkPos.z);
+        }
     }
 
     @Override

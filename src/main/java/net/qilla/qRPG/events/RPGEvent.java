@@ -3,6 +3,7 @@ package net.qilla.qRPG.events;
 import com.google.common.base.Preconditions;
 import io.papermc.paper.math.BlockPosition;
 import org.bukkit.World;
+import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 

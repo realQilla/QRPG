@@ -5,10 +5,13 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.animal.Chicken;
+import net.minecraft.world.level.ChunkPos;
 import net.qilla.qRPG.events.general.CustomEntity;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.craftbukkit.CraftServer;
+import org.bukkit.craftbukkit.CraftWorld;
 import org.bukkit.craftbukkit.entity.CraftChicken;
+import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.event.entity.EntityRemoveEvent;
 import org.jetbrains.annotations.NotNull;
 
@@ -25,20 +28,26 @@ public class ParachuteEntity extends Chicken implements CustomEntity<CraftChicke
         this.craft = new CraftChicken(craftServer, this);
 
         super.setPos(pos.x(), pos.y(), pos.z());
-        craft.getAttribute(Attribute.SCALE).setBaseValue(5);
+        craft.getAttribute(Attribute.SCALE).setBaseValue(25);
 
         this.lifespan = lifespan;
         curPos = pos;
     }
 
     @Override
-    public CraftChicken getCraft() {
+    public @NotNull CraftChicken getCraft() {
         return craft;
     }
 
     @Override
     public void create() {
-        super.level().addFreshEntity(this);
+        CraftWorld craftWorld = level().getWorld();
+        craftWorld.addEntityToWorld(this, CreatureSpawnEvent.SpawnReason.COMMAND);
+        ChunkPos chunkPos = this.chunkPosition();
+
+        if(!craftWorld.isChunkLoaded(chunkPos.x, chunkPos.z)) {
+            craftWorld.getChunkAt(chunkPos.x, chunkPos.z);
+        }
     }
 
     @Override

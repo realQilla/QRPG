@@ -6,10 +6,14 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.Brightness;
 import net.minecraft.world.entity.Display;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.block.Blocks;
 import net.qilla.qRPG.events.general.CustomEntity;
 import org.bukkit.craftbukkit.CraftServer;
+import org.bukkit.craftbukkit.CraftWorld;
 import org.bukkit.craftbukkit.entity.CraftBlockDisplay;
+import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.event.entity.EntityRemoveEvent;
 import org.bukkit.util.Transformation;
 import org.jetbrains.annotations.NotNull;
@@ -32,7 +36,7 @@ public class AirdropEntity extends Display.BlockDisplay implements CustomEntity<
         super.setBrightnessOverride(new Brightness(15, 15));
         super.setPos(pos.x(), pos.y(), pos.z());
         craft.setTransformation(new Transformation(
-                new Vector3f(-2.5f, 0, -2.5f),
+                new Vector3f(-2.5f, -6.5f, -2.5f),
                 new AxisAngle4f(),
                 new Vector3f(5, 5, 5),
                 new AxisAngle4f()
@@ -41,13 +45,23 @@ public class AirdropEntity extends Display.BlockDisplay implements CustomEntity<
     }
 
     @Override
-    public CraftBlockDisplay getCraft() {
+    public @NotNull CraftBlockDisplay getCraft() {
         return craft;
     }
 
     @Override
     public void create() {
-        super.level().addFreshEntity(this);
+        CraftWorld craftWorld = level().getWorld();
+        craftWorld.addEntityToWorld(this, CreatureSpawnEvent.SpawnReason.COMMAND);
+        ChunkPos chunkPos = this.chunkPosition();
+
+        if(!craftWorld.isChunkLoaded(chunkPos.x, chunkPos.z)) {
+            craftWorld.getChunkAt(chunkPos.x, chunkPos.z);
+        }
+    }
+
+    public void remove() {
+        super.remove(RemovalReason.DISCARDED);
     }
 
     @Override
